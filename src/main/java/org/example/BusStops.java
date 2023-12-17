@@ -4,37 +4,40 @@ import lombok.Data;
 import lombok.val;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 
 @Data
 public class BusStops {
-    private static final String SITE =  "https://m.cdsvyatka.com/";
     private final WebDriver driver;
-    private String route;
 
-    public BusStops(WebDriver driver, String route){
+    @FindBy(xpath = "//*[@id='marshlist']")
+    private WebElement routeDropdown;
+
+    @FindBy(xpath = "//form[@id='marshSearch']//input[@value='Найти']")
+    private WebElement searchButton;
+
+
+    public BusStops(WebDriver driver){
+        PageFactory.initElements(driver, this);
         this.driver =driver;
-        this.route = route;
     }
 
-    public void Execute() {
-        driver.get(SITE);
-        route = HandleRoute(route);
+    public void selectBus(String bus) {
+        (new Select(routeDropdown)).selectByValue(handleRoute(bus));
+    }
 
-        val routeDropdown = new Select(driver.findElement(By.id("marshlist")));
-        routeDropdown.selectByValue(route);
-
-        val searchButton = driver.findElement(By.xpath("//form[@id='marshSearch']//input[@value='Найти']"));
+    public void searchButtonClick() {
         searchButton.click();
-
-        val wait = new WebDriverWait(driver, 10);
-        wait.until(ExpectedConditions.titleContains("Остановки на маршруте"));
     }
-    public String HandleRoute(String route) {
+
+    private String handleRoute(String route) {
         if (route.matches("Авт \\d{1,2}")) {
-            return "10" + route.substring(4);
+            return "100" + route.substring(4);
         } else if (route.matches("Авт \\d{1,3}")) {
             return "3" + route.substring(4);
         } else if (route.matches("Тролл Т\\d{1,2}")) {
@@ -42,4 +45,10 @@ public class BusStops {
         }
         return null;
     }
+
+    public void execute(String bus) {
+        selectBus(bus);
+        searchButtonClick();
+    }
+
 }

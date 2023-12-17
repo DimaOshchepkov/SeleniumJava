@@ -4,9 +4,13 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -15,55 +19,74 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 
+import javax.imageio.ImageIO;
+
 public class Images {
+    private Integer countImages = 200;
+    private WebDriverWait wait;
     private WebDriver driver;
-    public Images(WebDriver driver){
+    @FindBy(xpath = "/html/body/div[1]/header/div/div[2]/div[1]/form/div[1]/span/span/input")
+    private WebElement searchTextBox;
+
+    @FindBy(xpath = "/html/body/div[1]/header/div/div[2]/div[1]/form/div[2]/button/div[3]")
+    private WebElement searchButton;
+
+    public Images(WebDriver driver) {
+        PageFactory.initElements(driver, this);
         this.driver = driver;
+        wait = new WebDriverWait(driver, 10);
+    }
+
+    public void sendMessage(String message) {
+        wait.until(ExpectedConditions.elementToBeClickable(searchTextBox));
+        searchTextBox.sendKeys(message);
+    }
+
+    public void searchBtnClick() {
+        searchButton.click();
     }
 
     public void execute() throws InterruptedException {
         driver.get("https://yandex.ru/images");
 
-        WebDriverWait wait = new WebDriverWait(driver, 10);
+        sendMessage("котики");
+        searchBtnClick();
 
-        WebElement searcTextBox = driver.findElement(By.xpath("/html/body/div[1]/header/div/div[2]/div[1]/form/div[1]/span/span/input"));
-        wait.until(ExpectedConditions.elementToBeClickable(searcTextBox));
-        searcTextBox.sendKeys("гугл");
+        int imagePtr = 0;
+        int initSize = 0;
+        int newSize = 0;
+        List<WebElement> allElements;
 
-        WebElement searchButton = driver.findElement(By.xpath("/html/body/div[1]/header/div/div[2]/div[1]/form/div[2]/button/div[3]"));
-        searchButton.click();
+        do {
+            initSize = newSize;
+            // Получаем все элементы, которые есть на странице на момент начала работы
+            allElements = driver.findElements(By.cssSelector("img.SimpleImage-Image.SimpleImage-Image_clickable"));
+            newSize = allElements.size();
 
-        wait.until(ExpectedConditions.urlContains("https://yandex.ru/images/search?text=%D0%B3%D1%83%D0%B3%D0%BB"));
-
-        for (int i = 0; i < 8; i++) {
-            ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
-            try {
-                Thread.sleep(2000); // Подождать загрузки новых изображений
-            }catch (InterruptedException e) {
-                e.printStackTrace();
+            // Обрабатываем новые элементы
+            for (int i = imagePtr; i < allElements.size() && i < countImages; i++) {
+                String imageUrl = allElements.get(i).getAttribute("src");
+                downloadImage(imageUrl, "src\\images\\" + Integer.toString(imageUrl.hashCode()) + ".jpg");
+                imagePtr++;
             }
-        }
 
-        //wait.until(ExpectedConditions.presenceOfElementLocated(By("SimpleImage-Image SimpleImage-Image_clickable")));
-        List<WebElement> imageThumbnails = driver.findElements(By.cssSelector("img.SimpleImage-Image.SimpleImage-Image_clickable"));
+            // Прокручиваем страницу вниз
+            ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
 
-        int count = 200;
-        String destinationDirectory = "C:\\Уник\\Java\\SeleniumJava\\images\\";
-        for (int i = 0; i < count; i++) {
-            String imageUrl = imageThumbnails.get(i).getAttribute("src");
+            wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(
+                    By.cssSelector("img.SimpleImage-Image.SimpleImage-Image_clickable"), allElements.size()));
 
-            // Скачиваем изображение
-            downloadImage(imageUrl, destinationDirectory + i + ".jpg");
-        }
+        } while (newSize > initSize && imagePtr < countImages);
     }
-    public static void downloadImage(String imageUrl, String destination) {
+
+    private void downloadImage(String imageUrl, String destinationPath) {
         try {
-            // Открываем поток изображения и копируем его в указанное место на диске
-            InputStream in = new URL(imageUrl).openStream();
-            Files.copy(in, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
-            in.close();
+            URL url = new URL(imageUrl);
+            BufferedImage image = ImageIO.read(url);
+
+            File outputFile = new File(destinationPath);
+            ImageIO.write(image, "jpg", outputFile);
         } catch (IOException e) {
-            // Обработка ошибок при скачивании
             e.printStackTrace();
         }
     }
