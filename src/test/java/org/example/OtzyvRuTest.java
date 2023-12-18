@@ -7,10 +7,10 @@ import org.junit.Test;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.edge.EdgeDriver;
 
-public class IrecommendTest {
+public class OtzyvRuTest {
 
     public static WebDriver driver;
-    public static Irecommend irecomended;
+    public static OtzyvRu otzovyvru;
 
     @BeforeClass
     public static void setup() {
@@ -18,17 +18,17 @@ public class IrecommendTest {
         System.setProperty("webdriver.edge.driver", ConfProperties.getProperty("edgedriver"));
         // создание экземпляра драйвера
         driver = new EdgeDriver();
-        irecomended = new Irecommend(driver);
+        otzovyvru = new OtzyvRu(driver);
         // окно разворачивается на полный экран
         driver.manage().window().maximize();
         // задержка на выполнение теста = 10 сек.
-        driver.manage().timeouts().implicitlyWait(40, TimeUnit.SECONDS);
+        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         // получение ссылки на страницу входа из файла настроек
-        driver.get(ConfProperties.getProperty("irecomendedpage"));
+        driver.get(ConfProperties.getProperty("otzyvrupage"));
     }
 
     @Test
     public void testExecute() {
-        irecomended.execute();
+        otzovyvru.execute();
     }
 }
